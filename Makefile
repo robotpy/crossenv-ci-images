@@ -53,7 +53,7 @@ build: build/base build/cross-arm64 build/cross-arm64-python build/cross-arm64-p
 
 .PHONY: push/base
 push/base:
-	docker push -t ghcr.io/robotpy/crossenv-ci-images:base-${UBUNTU}
+	docker push ghcr.io/robotpy/crossenv-ci-images:base-${UBUNTU}
 
 .PHONY: push/cross-arm64
 push/cross-arm64:
