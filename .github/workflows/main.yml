@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+    tags:
+    - '*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-minimal:
+    name: Build Minimal
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu-version:
+        - "24.04"
+    steps:
+    - uses: actions/checkout@v4
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} update
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} build/base
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} build/cross-arm64
+
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} save/minimal
+
+    - name: Upload minimal base image
+      uses: actions/upload-artifact@v4
+      with:
+        name: base-${{ matrix.ubuntu-version }}
+        path: base.tar.zst
+        retention-days: 1
+
+    - name: Upload minimal cross image
+      uses: actions/upload-artifact@v4
+      with:
+        name: cross-arm64-${{ matrix.ubuntu-version }}
+        path: cross-arm64.tar.zst
+        retention-days: 1
+
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} push/base push/cross-arm64
+      if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
+
+  build:
+    name: Build
+    needs: [build-minimal]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pyversion:
+        - py311
+        - py312
+        - py313
+        ubuntu-version:
+        - "24.04"
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download base image
+      uses: actions/download-artifact@v4
+      with:
+        name: cross-arm64-${{ matrix.ubuntu-version }}
+        path: img
+
+    - name: Download cross image
+      uses: actions/download-artifact@v4
+      with:
+        name: cross-arm64-${{ matrix.ubuntu-version }}
+        path: img
+
+    - name: Load images
+      run: |
+        for i in img/*.tar.zst; do
+          unzstd -c $i | docker load
+          rm $i
+        done
+
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} update
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} build/cross-arm64-python
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} build/cross-arm64-python-qemu
+
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} push/cross-arm64-python
+      if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
+    - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} push/cross-arm64-python-qemu
+      if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
