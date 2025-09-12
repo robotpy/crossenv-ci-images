@@ -43,6 +43,14 @@ jobs:
         path: cross-arm64.tar.zst
         retention-days: 1
 
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
+
     - run: make UBUNTU=${{ matrix.ubuntu-version }} push/base push/cross-arm64
       if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
 
@@ -83,6 +91,14 @@ jobs:
     - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} update
     - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} build/cross-arm64-python
     - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} build/cross-arm64-python-qemu
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
 
     - run: make UBUNTU=${{ matrix.ubuntu-version }} PYVERSION=${{ matrix.pyversion }} push/cross-arm64-python
       if: ${{ github.repository_owner == 'robotpy' && github.ref == 'refs/heads/main' }}
