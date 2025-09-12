@@ -1,0 +1,23 @@
+ARG BASE_IMAGE=invalid-base-image
+
+FROM ${BASE_IMAGE}
+
+# Setup arm64 for ubuntu
+RUN set -xe; \
+    # Add arm64 ports repository
+    awk '/^URIs:/ { print "URIs: http://ports.ubuntu.com/ubuntu-ports"; print "Architectures: arm64"; next } { print }' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/port.sources; \
+    # Ensure original sources are only used for host
+    awk '/^Types:/ { print; print "Architectures: amd64"; next } /^Architectures:/ { next } { print }' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources.new; \
+    mv /etc/apt/sources.list.d/ubuntu.sources.new /etc/apt/sources.list.d/ubuntu.sources; \
+    dpkg --add-architecture arm64
+  
+
+# Install QEMU user mode binaries and libc
+RUN set -xe; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        qemu-user libc6:arm64; \
+    rm -rf /var/lib/apt/lists/*
+
+# Crossenv tests use these environment variables
+ENV CROSSENV_TEST_ARCH="aarch64-ubuntu-linux-gnu Linux aarch64"

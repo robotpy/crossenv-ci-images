@@ -1,0 +1,17 @@
+ARG UBUNTU=invalid-ubuntu
+
+FROM ghcr.io/robotpy/crossenv-ci-images:base-${UBUNTU}
+
+# Install aarch64 toolchain
+RUN set -xe; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        crossbuild-essential-arm64; \
+    rm -rf /var/lib/apt/lists/*
+
+# But it's not named correctly for a cross compiler, so create
+# symlinks to make python think it is aarch64-ubuntu-linux-gnu
+RUN set -xe; \
+    for f in /usr/bin/aarch64-linux-gnu-*; \
+        do ln -s "$f" "/usr/bin/$(basename "$f" | sed 's/^aarch64-linux-gnu-/aarch64-ubuntu-linux-gnu-/')"; \
+    done; \
