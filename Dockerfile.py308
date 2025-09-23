@@ -80,6 +80,8 @@ RUN set -xe; \
     apt-get install -y \
         binutils libreadline8 libncursesw6 libssl3 \
         libsqlite3-0 libgdbm6 libbz2-1.0 liblzma5 libffi8 zlib1g; \
+    # crypt.h is required by Python.h
+    apt-get install -y libcrypt-dev; \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=pycompile /usr/local /usr/local
